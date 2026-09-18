@@ -6,7 +6,7 @@ import google.generativeai as genai
 from flask import Flask
 from threading import Thread
 
-# 1. Cấu hình Flask mở cổng đúng yêu cầu của Render Web Service
+# 1. Cấu hình Flask giữ Bot sống
 app = Flask(__name__)
 
 @app.route('/')
@@ -14,11 +14,9 @@ def home():
     return "Bot Discord đang chạy!"
 
 def run_flask():
-    # Lấy cổng do Render tự động cấp qua biến PORT (mặc định 10000)
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# Chạy Flask ở luồng riêng
 t = Thread(target=run_flask)
 t.daemon = True
 t.start()
@@ -66,21 +64,35 @@ async def auto_roast():
             print(f"Lỗi auto roast: {e}")
 
 @bot.event
+async def on_ready():
+    print(f'Đã đăng nhập thành công với tên: {bot.user}')
+    if not auto_roast.is_running():
+        auto_roast.start()
+
+@bot.event
 async def on_message(message):
-    # Không tự trả lời chính mình
+    # Bỏ qua tin nhắn của chính Bot
     if message.author == bot.user:
         return
 
-    # Trả lời khi được tag (@mention) hoặc nhắn tin riêng
-    if bot.user in message.mentions or not message.guild:
+    # Phản hồi khi: Tag bot OR Gõ lệnh !chui OR Nhắn tin riêng cho Bot
+    is_mentioned = bot.user in message.mentions or f"<@{bot.user.id}>" in message.content
+    is_command = message.content.startswith("!chui")
+    is_dm = not message.guild
+
+    if is_mentioned or is_command or is_dm:
         async with message.channel.typing():
             try:
-                # Loại bỏ phần tag bot khỏi nội dung để lấy câu chat thuần
-                clean_content = message.content.replace(f'<@{bot.user.id}>', '').strip()
-                prompt = f"Người dùng {message.author.display_name} vừa nói: '{clean_content}'. Hãy cà khịa họ!"
+                # Làm sạch nội dung tin nhắn
+                clean_content = message.content.replace(f'<@{bot.user.id}>', '').replace('!chui', '').strip()
+                if not clean_content:
+                    clean_content = "chào tao"
                 
+                prompt = f"Người dùng {message.author.display_name} vừa nói: '{clean_content}'. Hãy cà khịa họ xéo sắc!"
                 response = model.generate_content(prompt)
-                await message.channel.send(response.text)
+                
+                # Trả lời trực tiếp tin nhắn của người dùng
+                await message.reply(response.text)
             except Exception as e:
                 print(f"Lỗi Gemini: {e}")
                 await message.channel.send("Tao đang bận, tí nữa nói tiếp!")
@@ -91,5 +103,3 @@ async def on_message(message):
 token = os.getenv("DISCORD_TOKEN")
 if token:
     bot.run(token)
-else:
-    print("THIẾU DISCORD_TOKEN!")
