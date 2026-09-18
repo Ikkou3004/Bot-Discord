@@ -64,18 +64,10 @@ async def auto_roast():
             print(f"Lỗi auto roast: {e}")
 
 @bot.event
-async def on_ready():
-    print(f'Đã đăng nhập thành công với tên: {bot.user}')
-    if not auto_roast.is_running():
-        auto_roast.start()
-
-@bot.event
 async def on_message(message):
-    # Bỏ qua tin nhắn của chính Bot
     if message.author == bot.user:
         return
 
-    # Phản hồi khi: Tag bot OR Gõ lệnh !chui OR Nhắn tin riêng cho Bot
     is_mentioned = bot.user in message.mentions or f"<@{bot.user.id}>" in message.content
     is_command = message.content.startswith("!chui")
     is_dm = not message.guild
@@ -83,7 +75,6 @@ async def on_message(message):
     if is_mentioned or is_command or is_dm:
         async with message.channel.typing():
             try:
-                # Làm sạch nội dung tin nhắn
                 clean_content = message.content.replace(f'<@{bot.user.id}>', '').replace('!chui', '').strip()
                 if not clean_content:
                     clean_content = "chào tao"
@@ -91,11 +82,10 @@ async def on_message(message):
                 prompt = f"Người dùng {message.author.display_name} vừa nói: '{clean_content}'. Hãy cà khịa họ xéo sắc!"
                 response = model.generate_content(prompt)
                 
-                # Trả lời trực tiếp tin nhắn của người dùng
                 await message.reply(response.text)
             except Exception as e:
-                print(f"Lỗi Gemini: {e}")
-                await message.channel.send("Tao đang bận, tí nữa nói tiếp!")
+                # In thẳng lỗi ra Discord để biết chính xác nguyên nhân
+                await message.channel.send(f"Lỗi Gemini rồi: `{e}`")
 
     await bot.process_commands(message)
 
