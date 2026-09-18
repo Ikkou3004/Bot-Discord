@@ -24,12 +24,12 @@ t.start()
 # 2. Cấu hình Gemini AI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-2.5-flash",  # Đổi sang gemini-2.5-flash
     system_instruction=(
         "Bạn là một con bot Discord đanh đá, cục súc và xéo sắc. "
         "Phản hồi bằng tiếng Việt, ngắn gọn (dưới 3 câu), xưng 'tao - mày', "
         "chuyên tìm cách cà khịa, đớp chát người dùng một cách hài hước."
-    )
+    ),
 )
 
 # 3. Cấu hình Discord Bot
