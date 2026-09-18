@@ -66,23 +66,23 @@ async def auto_roast():
             print(f"Lỗi auto roast: {e}")
 
 @bot.event
-async def on_ready():
-    print(f'Đã đăng nhập thành công với tên: {bot.user}')
-    if not auto_roast.is_running():
-        auto_roast.start()
-
-@bot.event
 async def on_message(message):
+    # Không tự trả lời chính mình
     if message.author == bot.user:
         return
 
-    if bot.user.mentioned_in(message) or not message.guild:
+    # Trả lời khi được tag (@mention) hoặc nhắn tin riêng
+    if bot.user in message.mentions or not message.guild:
         async with message.channel.typing():
             try:
-                response = model.generate_content(f"{message.author.display_name} nói: {message.content}")
+                # Loại bỏ phần tag bot khỏi nội dung để lấy câu chat thuần
+                clean_content = message.content.replace(f'<@{bot.user.id}>', '').strip()
+                prompt = f"Người dùng {message.author.display_name} vừa nói: '{clean_content}'. Hãy cà khịa họ!"
+                
+                response = model.generate_content(prompt)
                 await message.channel.send(response.text)
             except Exception as e:
-                print(f"Lỗi chat: {e}")
+                print(f"Lỗi Gemini: {e}")
                 await message.channel.send("Tao đang bận, tí nữa nói tiếp!")
 
     await bot.process_commands(message)
